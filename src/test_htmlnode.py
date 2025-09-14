@@ -1,5 +1,5 @@
 import unittest
-from htmlnode import HTMLNode, LeafNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 
 
 class TestHTMLNode(unittest.TestCase):
@@ -26,7 +26,60 @@ class TestHTMLNode(unittest.TestCase):
         node = LeafNode("p", "Hello, world!")
         node2 = LeafNode("a", "Click here", {"href": "https://example.com"})
         self.assertEqual(node.to_html(), "<p>Hello, world!</p>")
-        self.assertEqual(node2.to_html(), '<a href="https://example.com">Click here</a>')
+        self.assertEqual(
+            node2.to_html(), '<a href="https://example.com">Click here</a>'
+        )
+
+    def test_leaf_to_html_no_tag(self):
+        node = LeafNode(None, "Just text")
+        self.assertEqual(node.to_html(), "Just text")
+
+    def test_parent_to_html(self):
+        node = ParentNode(
+            "p",
+            [
+                LeafNode("b", "Bold text"),
+                LeafNode(None, "Normal text"),
+                LeafNode("i", "italic text"),
+                LeafNode(None, "Normal text"),
+            ],
+        )
+        node2 = ParentNode(
+            "div",
+            [
+                LeafNode("span", "child"),
+                ParentNode(
+                    "ul",
+                    [
+                        LeafNode("li", "item 1"),
+                        LeafNode("li", "item 2"),
+                    ],
+                ),
+            ],
+        )
+
+        self.assertEqual(
+            node.to_html(),
+            "<p><b>Bold text</b>Normal text<i>italic text</i>Normal text</p>",
+        )
+        self.assertEqual(
+            node2.to_html(),
+            "<div><span>child</span><ul><li>item 1</li><li>item 2</li></ul></div>",
+        )
+
+    def test_parent_to_html_with_children(self):
+        child_node = LeafNode("span", "child")
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(parent_node.to_html(), "<div><span>child</span></div>")
+
+    def test_parent_to_html_with_grandchildren(self):
+        grandchild_node = LeafNode("b", "grandchild")
+        child_node = ParentNode("span", [grandchild_node])
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(
+            parent_node.to_html(),
+            "<div><span><b>grandchild</b></span></div>",
+        )
 
 
 if __name__ == "__main__":
