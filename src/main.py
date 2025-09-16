@@ -19,6 +19,30 @@ def text_node_to_html_node(text_node):
         )
 
 
+def split_nodes_delimiter(old_nodes, delimiter, text_type):
+    new_nodes = []
+
+    for node in old_nodes:
+        # Raise error if there's no closing delimiter
+        if node.text.count(delimiter) % 2 != 0:
+            raise ValueError(f"Unmatched delimiter '{delimiter}' in text: {node.text}")
+        # Split only plain text nodes into alternating plain and formatted nodes
+        if node.text_type != TextType.PLAIN:
+            new_nodes.append(node)
+            continue
+
+        parts = node.text.split(delimiter)
+        for i, part in enumerate(parts):
+            if part == "":
+                continue
+            if i % 2 == 0:
+                new_nodes.append(TextNode(part, TextType.PLAIN))
+            else:
+                new_nodes.append(TextNode(part, text_type))
+
+    return new_nodes
+
+
 def main():
     new_node = TextNode("This is some anchor text", "link", "https://example.com")
     print(new_node)
