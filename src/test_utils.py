@@ -1,7 +1,14 @@
 import unittest
 
 from textnode import TextNode, TextType
-from utils import extract_markdown_images, extract_markdown_links, text_node_to_html_node, split_nodes_delimiter
+from utils import (
+    extract_markdown_images,
+    extract_markdown_links,
+    split_nodes_image,
+    split_nodes_link,
+    text_node_to_html_node,
+    split_nodes_delimiter,
+)
 
 
 class TestMain(unittest.TestCase):
@@ -98,13 +105,13 @@ class TestMain(unittest.TestCase):
         ]
         delimiter = "**"
         text_type = TextType.BOLD
-        
+
         new_nodes = split_nodes_delimiter(nodes, delimiter, text_type)
         self.assertEqual(len(new_nodes), 3)
         self.assertEqual(new_nodes[0].text, "This is ")
         self.assertEqual(new_nodes[1].text, "bold")
         self.assertEqual(new_nodes[2].text, " text and _italic_ text with `code`")
-        
+
         nodes = [
             TextNode("This is _italic_", TextType.PLAIN),
             TextNode(" and this is **bold**", TextType.PLAIN),
@@ -112,7 +119,7 @@ class TestMain(unittest.TestCase):
         ]
         delimiter = "`"
         text_type = TextType.CODE
-        
+
         new_nodes = split_nodes_delimiter(nodes, delimiter, text_type)
         self.assertEqual(len(new_nodes), 4)
         self.assertEqual(new_nodes[0].text, "This is _italic_")
@@ -122,13 +129,13 @@ class TestMain(unittest.TestCase):
         self.assertEqual(new_nodes[2].text, " and this is ")
         self.assertEqual(new_nodes[3].text, "code")
         self.assertEqual(new_nodes[3].text_type, TextType.CODE)
-        
+
         new_nodes = split_nodes_delimiter(new_nodes, "_", TextType.ITALIC)
         self.assertEqual(len(new_nodes), 5)
         self.assertEqual(new_nodes[0].text, "This is ")
         self.assertEqual(new_nodes[1].text, "italic")
         self.assertEqual(new_nodes[1].text_type, TextType.ITALIC)
-        
+
         new_nodes = split_nodes_delimiter(new_nodes, "**", TextType.BOLD)
         self.assertEqual(len(new_nodes), 6)
         self.assertEqual(new_nodes[2].text, " and this is ")
@@ -149,6 +156,62 @@ class TestMain(unittest.TestCase):
             "This is a link to [example](https://example.com)"
         )
         self.assertListEqual([("example", "https://example.com")], matches)
+
+    def test_split_images(self):
+        node = TextNode(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png) and another ![second image](https://i.imgur.com/3elNhQu.png)",
+            TextType.PLAIN,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with an ", TextType.PLAIN),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/zjjcJKZ.png"),
+                TextNode(" and another ", TextType.PLAIN),
+                TextNode(
+                    "second image", TextType.IMAGE, "https://i.imgur.com/3elNhQu.png"
+                ),
+            ],
+            new_nodes,
+        )
+        node = TextNode(
+            "This is a text without images or links", TextType.PLAIN
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual([node], new_nodes)
+        node = TextNode(
+            "This is some text which shouldn't be converted",
+            TextType.BOLD,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual([node], new_nodes)
+
+    def test_split_links(self):
+        node = TextNode(
+            "This is a link to [example](https://example.com) and another [second link](https://example.org)",
+            TextType.PLAIN,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("This is a link to ", TextType.PLAIN),
+                TextNode("example", TextType.LINK, "https://example.com"),
+                TextNode(" and another ", TextType.PLAIN),
+                TextNode("second link", TextType.LINK, "https://example.org"),
+            ],
+            new_nodes,
+        )
+        node = TextNode(
+            "This is a text without links or images", TextType.PLAIN
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual([node], new_nodes)
+        node = TextNode(
+            "This is some text which shouldn't be converted",
+            TextType.BOLD,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual([node], new_nodes)
 
 if __name__ == "__main__":
     unittest.main()
