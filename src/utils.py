@@ -259,3 +259,47 @@ def copy_tree_clean(src_dir, dst_dir):
     os.makedirs(dst_dir, exist_ok=True)
 
     _copy_dir_contents(src_dir, dst_dir)
+
+
+def extract_title(markdown):
+    """Extract the H1 title (line starting with a single '# ') from markdown.
+
+    Returns the stripped title text. Raises a ValueError if no H1 exists.
+    Leading whitespace on each line is ignored, so indented H1s are supported.
+    """
+    for line in markdown.splitlines():
+        s = line.strip()
+        if s.startswith("# "):
+            return s[2:].strip()
+    raise ValueError("No H1 title ('# ') found in markdown")
+
+
+def generate_page(from_path, template_path, dest_path):
+    """Generate a full HTML page from a markdown file and an HTML template.
+
+    - Logs the operation
+    - Converts markdown to HTML using markdown_to_html_node().to_html()
+    - Extracts title using extract_title()
+    - Replaces {{ Title }} and {{ Content }} in the template
+    - Writes output to dest_path, creating directories as needed
+    """
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+
+    with open(from_path, "r", encoding="utf-8") as f:
+        md = f.read()
+    with open(template_path, "r", encoding="utf-8") as f:
+        template = f.read()
+
+    html_node = markdown_to_html_node(md)
+    content_html = html_node.to_html()
+    title = extract_title(md)
+
+    full_html = template.replace("{{ Title }}", title).replace(
+        "{{ Content }}", content_html
+    )
+
+    dest_dir = os.path.dirname(dest_path)
+    if dest_dir:
+        os.makedirs(dest_dir, exist_ok=True)
+    with open(dest_path, "w", encoding="utf-8") as f:
+        f.write(full_html)

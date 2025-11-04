@@ -20,10 +20,30 @@ class LeafNode(HTMLNode):
         super().__init__(tag=tag, value=value, props=props)
 
     def to_html(self):
-        if self.value is None:
-            raise ValueError("LeafNode must have a value")
+        # Support void/self-closing tags (e.g., img, br, hr, input, meta, link)
+        void_tags = {
+            "img",
+            "br",
+            "hr",
+            "input",
+            "meta",
+            "link",
+            "source",
+            "track",
+            "area",
+            "base",
+            "col",
+            "embed",
+            "param",
+            "wbr",
+        }
         if self.tag is None:
             return self.value
+        if self.tag in void_tags:
+            # Render as self-closing; ignore value
+            return f"<{self.tag}{self.props_to_html()} />"
+        if self.value is None:
+            raise ValueError("LeafNode must have a value")
 
         return f"<{self.tag}{self.props_to_html()}>{self.value}</{self.tag}>"
 

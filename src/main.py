@@ -1,14 +1,11 @@
-from textnode import TextNode
-from utils import copy_tree_clean
+from utils import copy_tree_clean, generate_page
 
 
 def main():
-    # Copy all static assets into the generated public directory
+    # Delete/clean and copy static assets into the generated public directory
     copy_tree_clean("static", "public")
-
-    # Existing demo output (harmless for tests/manual run)
-    new_node = TextNode("This is some anchor text", "link", "https://example.com")
-    print(new_node)
+    # Generate the main page from markdown using the HTML template
+    generate_page("content/index.md", "template.html", "public/index.html")
 
 
 if __name__ == "__main__":

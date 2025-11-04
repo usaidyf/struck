@@ -11,6 +11,7 @@ from utils import (
     text_to_textnodes,
     markdown_to_blocks,
     markdown_to_html_node,
+    extract_title,
 )
 
 
@@ -177,9 +178,7 @@ class TestMain(unittest.TestCase):
             ],
             new_nodes,
         )
-        node = TextNode(
-            "This is a text without images or links", TextType.PLAIN
-        )
+        node = TextNode("This is a text without images or links", TextType.PLAIN)
         new_nodes = split_nodes_image([node])
         self.assertListEqual([node], new_nodes)
         node = TextNode(
@@ -204,9 +203,7 @@ class TestMain(unittest.TestCase):
             ],
             new_nodes,
         )
-        node = TextNode(
-            "This is a text without links or images", TextType.PLAIN
-        )
+        node = TextNode("This is a text without links or images", TextType.PLAIN)
         new_nodes = split_nodes_link([node])
         self.assertListEqual([node], new_nodes)
         node = TextNode(
@@ -215,7 +212,7 @@ class TestMain(unittest.TestCase):
         )
         new_nodes = split_nodes_link([node])
         self.assertListEqual([node], new_nodes)
-        
+
     def test_text_to_textnodes(self):
         text = "This is **bold** text, this one is _italic_ with a [link](https://example.com) and an ![image](https://i.imgur.com/zjjcJKZ.png) and some `code`."
         nodes = text_to_textnodes(text)
@@ -248,7 +245,9 @@ class TestMain(unittest.TestCase):
             TextNode(" word and a ", TextType.PLAIN),
             TextNode("code block", TextType.CODE),
             TextNode(" and an ", TextType.PLAIN),
-            TextNode("obi wan image", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"),
+            TextNode(
+                "obi wan image", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"
+            ),
             TextNode(" and a ", TextType.PLAIN),
             TextNode("link", TextType.LINK, "https://boot.dev"),
         ]
@@ -269,7 +268,7 @@ class TestMain(unittest.TestCase):
                 "- This is a list\n- with items",
             ],
         )
-        
+
     def test_paragraphs(self):
         md = """
         This is **bolded** paragraph
@@ -301,8 +300,35 @@ class TestMain(unittest.TestCase):
             html,
             "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
         )
+
+    def test_extract_title_simple(self):
+        self.assertEqual(extract_title("# Hello"), "Hello")
+
+    def test_extract_title_spacing(self):
+        md = """
+        #   Hello World   
         
-    
-    
+        Some paragraph
+        """
+        self.assertEqual(extract_title(md), "Hello World")
+
+    def test_extract_title_multiline(self):
+        md = """
+        Some intro
+        # My Title
+        ## Subtitle
+        Content here
+        """
+        self.assertEqual(extract_title(md), "My Title")
+
+    def test_extract_title_missing_raises(self):
+        md = """
+        ## No H1 here
+        Paragraph
+        """
+        with self.assertRaises(ValueError):
+            extract_title(md)
+
+
 if __name__ == "__main__":
     unittest.main()
