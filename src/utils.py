@@ -3,6 +3,8 @@ from textnode import TextType, TextNode
 from blocknode import BlockType, block_to_block_type
 import re
 import textwrap
+import os
+import shutil
 
 
 def text_node_to_html_node(text_node):
@@ -223,3 +225,37 @@ def markdown_to_html_node(markdown):
             children.append(paragraph_block_to_node(block))
 
     return ParentNode("div", children)
+
+
+def _copy_dir_contents(src_dir, dst_dir):
+    """Recursively copy contents of src_dir into dst_dir.
+
+    Assumes dst_dir already exists. Logs each file copied.
+    """
+    for entry in os.listdir(src_dir):
+        src_path = os.path.join(src_dir, entry)
+        dst_path = os.path.join(dst_dir, entry)
+        if os.path.isdir(src_path):
+            os.makedirs(dst_path, exist_ok=True)
+            _copy_dir_contents(src_path, dst_path)
+        else:
+            # Copy file and preserve metadata
+            shutil.copy2(src_path, dst_path)
+            print(f"Copied {src_path} -> {dst_path}")
+
+
+def copy_tree_clean(src_dir, dst_dir):
+    """Delete dst_dir (if exists) and copy entire src_dir tree into it.
+
+    - Removes the destination directory to ensure a clean copy
+    - Recursively copies files and subdirectories
+    - Logs each copied file path
+    """
+    if not os.path.exists(src_dir):
+        raise FileNotFoundError(f"Source directory does not exist: {src_dir}")
+
+    if os.path.exists(dst_dir):
+        shutil.rmtree(dst_dir)
+    os.makedirs(dst_dir, exist_ok=True)
+
+    _copy_dir_contents(src_dir, dst_dir)
