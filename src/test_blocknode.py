@@ -13,7 +13,9 @@ class TestBlockNode(unittest.TestCase):
         self.assertEqual(block_to_block_type("> This is a quote"), BlockType.QUOTE)
         self.assertEqual(block_to_block_type(">This is also a quote"), BlockType.QUOTE)
         self.assertEqual(block_to_block_type("1. First item"), BlockType.ORDERED_LIST)
-        self.assertEqual(block_to_block_type("22. Twenty second item"), BlockType.ORDERED_LIST)
+        self.assertEqual(
+            block_to_block_type("22. Twenty second item"), BlockType.ORDERED_LIST
+        )
         self.assertEqual(
             block_to_block_type("- Unordered item"), BlockType.UNORDERED_LIST
         )

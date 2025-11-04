@@ -1,6 +1,8 @@
-from htmlnode import LeafNode
+from htmlnode import LeafNode, ParentNode
 from textnode import TextType, TextNode
+from blocknode import BlockType, block_to_block_type
 import re
+import textwrap
 
 
 def text_node_to_html_node(text_node):
@@ -109,6 +111,7 @@ def split_nodes_link(old_nodes):
 
     return new_nodes
 
+
 def text_to_textnodes(text):
     nodes = [TextNode(text, TextType.PLAIN)]
     nodes = split_nodes_image(nodes)
@@ -118,5 +121,105 @@ def text_to_textnodes(text):
     nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
     return nodes
 
+
 def markdown_to_blocks(markdown):
     return [y for y in ([x.strip() for x in markdown.split("\n\n")]) if y != ""]
+
+
+def markdown_to_html_node(markdown):
+    # Helper to convert inline markdown text into HTMLNode children
+    def text_to_children(text):
+        return [text_node_to_html_node(n) for n in text_to_textnodes(text)]
+
+    # Helper to process heading blocks
+    def heading_block_to_node(block):
+        first_line = block.splitlines()[0].strip()
+        level = len(first_line) - len(first_line.lstrip("#"))
+        level = min(max(level, 1), 6)
+        text = first_line[level:].strip()
+        return ParentNode(f"h{level}", text_to_children(text))
+
+    # Helper to process paragraph blocks (merge lines with spaces)
+    def paragraph_block_to_node(block):
+        text = (
+            " ".join(
+                [line.strip() for line in block.splitlines() if line.strip() != ""]
+            )
+            if "\n" in block
+            else block.strip()
+        )
+        return ParentNode("p", text_to_children(text))
+
+    # Helper to process blockquote blocks (strip leading ">" per line)
+    def quote_block_to_node(block):
+        lines = []
+        for line in block.splitlines():
+            # Remove leading '>' and optional space
+            stripped = re.sub(r"^>\s?", "", line.strip())
+            if stripped != "":
+                lines.append(stripped)
+        text = " ".join(lines)
+        return ParentNode("blockquote", text_to_children(text))
+
+    # Helper to process unordered list blocks
+    def ul_block_to_node(block):
+        items = []
+        for line in block.splitlines():
+            s = line.strip()
+            if not s:
+                continue
+            if s.startswith("- "):
+                item_text = s[2:].strip()
+                items.append(ParentNode("li", text_to_children(item_text)))
+        return ParentNode("ul", items)
+
+    # Helper to process ordered list blocks
+    def ol_block_to_node(block):
+        items = []
+        for line in block.splitlines():
+            s = line.strip()
+            if not s:
+                continue
+            m = re.match(r"^(\d+)\.\s+(.*)$", s)
+            if m:
+                item_text = m.group(2).strip()
+                items.append(ParentNode("li", text_to_children(item_text)))
+        return ParentNode("ol", items)
+
+    # Helper to process code blocks (no inline parsing)
+    def code_block_to_node(block):
+        # Normalize block and remove opening/closing fences
+        content = block.strip()
+        lines = content.split("\n")
+        # Remove opening fence line
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        # Remove closing fence line
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        # Dedent common leading whitespace introduced by triple-quoted formatting
+        code_body = "\n".join(lines)
+        code_body = textwrap.dedent(code_body)
+        # Ensure trailing newline as per expected output
+        if not code_body.endswith("\n"):
+            code_body += "\n"
+        return ParentNode("pre", [LeafNode("code", code_body)])
+
+    blocks = markdown_to_blocks(markdown)
+    children = []
+    for block in blocks:
+        btype = block_to_block_type(block)
+        if btype == BlockType.HEADING:
+            children.append(heading_block_to_node(block))
+        elif btype == BlockType.QUOTE:
+            children.append(quote_block_to_node(block))
+        elif btype == BlockType.UNORDERED_LIST:
+            children.append(ul_block_to_node(block))
+        elif btype == BlockType.ORDERED_LIST:
+            children.append(ol_block_to_node(block))
+        elif btype == BlockType.CODE:
+            children.append(code_block_to_node(block))
+        else:
+            children.append(paragraph_block_to_node(block))
+
+    return ParentNode("div", children)
