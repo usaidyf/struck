@@ -274,7 +274,7 @@ def extract_title(markdown):
     raise ValueError("No H1 title ('# ') found in markdown")
 
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, base_path):
     """Generate a full HTML page from a markdown file and an HTML template.
 
     - Logs the operation
@@ -294,8 +294,11 @@ def generate_page(from_path, template_path, dest_path):
     content_html = html_node.to_html()
     title = extract_title(md)
 
-    full_html = template.replace("{{ Title }}", title).replace(
-        "{{ Content }}", content_html
+    full_html = (
+        template.replace("{{ Title }}", title)
+        .replace("{{ Content }}", content_html)
+        .replace('href="/', f'href="{base_path}')
+        .replace('src="/', f'src="{base_path}')
     )
 
     dest_dir = os.path.dirname(dest_path)
@@ -305,7 +308,7 @@ def generate_page(from_path, template_path, dest_path):
         f.write(full_html)
 
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, base_path):
     """Recursively generate HTML pages for all markdown files under a directory.
 
     - Walks the dir_path_content tree
@@ -333,4 +336,4 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
             # Replace .md with .html for output filename
             base_name = os.path.splitext(filename)[0] + ".html"
             dest_path = os.path.join(dest_current_dir, base_name)
-            generate_page(from_path, template_path, dest_path)
+            generate_page(from_path, template_path, dest_path, base_path)
