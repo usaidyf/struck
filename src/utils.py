@@ -303,3 +303,34 @@ def generate_page(from_path, template_path, dest_path):
         os.makedirs(dest_dir, exist_ok=True)
     with open(dest_path, "w", encoding="utf-8") as f:
         f.write(full_html)
+
+
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    """Recursively generate HTML pages for all markdown files under a directory.
+
+    - Walks the dir_path_content tree
+    - For every .md file, renders it using the shared template
+    - Writes output into dest_dir_path, preserving the relative directory structure
+      and replacing the .md extension with .html
+    """
+    if not os.path.isdir(dir_path_content):
+        raise FileNotFoundError(f"Content directory does not exist: {dir_path_content}")
+    if not os.path.isfile(template_path):
+        raise FileNotFoundError(f"Template file does not exist: {template_path}")
+
+    for root, _dirs, files in os.walk(dir_path_content):
+        # Determine the relative directory inside the content root
+        rel_dir = os.path.relpath(root, dir_path_content)
+        # Compute corresponding destination directory
+        dest_current_dir = (
+            dest_dir_path if rel_dir == "." else os.path.join(dest_dir_path, rel_dir)
+        )
+
+        for filename in files:
+            if not filename.lower().endswith(".md"):
+                continue
+            from_path = os.path.join(root, filename)
+            # Replace .md with .html for output filename
+            base_name = os.path.splitext(filename)[0] + ".html"
+            dest_path = os.path.join(dest_current_dir, base_name)
+            generate_page(from_path, template_path, dest_path)
